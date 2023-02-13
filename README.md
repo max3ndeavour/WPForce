@@ -1,9 +1,9 @@
-![Supported Python versions](https://img.shields.io/badge/python-2.7-blue.svg)
+![Supported Python versions](https://www.python.org/downloads/release/python-3916/)
 # WPForce - Wordpress Attack Suite 
 
 ## ABOUT:
 WPForce is a suite of Wordpress Attack tools.  Currently this contains 2 scripts - WPForce, which brute forces logins via the API, and Yertle, which uploads shells once admin credentials have been found.  Yertle also contains a number of post exploitation modules.
-
+This version is an update for python3 adaptation of WPForce.
 For more information, visit the blog post here: 
 https://www.n00py.io/2017/03/squeezing-the-juice-out-of-a-compromised-wordpress-server/
 

