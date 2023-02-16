@@ -1,7 +1,4 @@
-import re
 import sys
-import base64
-import readline
 import requests
 import argparse
 from random import choice
